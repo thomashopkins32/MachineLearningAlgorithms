@@ -6,4 +6,4 @@ Implementations of machine learning algorithms
 - Support Vector Machine
 - K-Nearest Neighbor
 - Radial Basis Network
-- Perceptron (linear regression + pocket PLA)
+- Perceptron (linear regression)
