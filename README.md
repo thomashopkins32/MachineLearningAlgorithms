@@ -1,5 +1,9 @@
 # Machine Learning Algorithms
-Implementations of machine learning algorithms
+Custom implementations of machine learning algorithms. The ones that only use `numpy` are task specific.
+
+## In Progress
+- LSTM
+- Vanilla Policy Gradient
 
 ## Includes
 - Neural Network
@@ -8,7 +12,7 @@ Implementations of machine learning algorithms
 - Radial Basis Function Network
 - Perceptron (linear regression)
 
-## Results
+## Results for Binary Classification
 Plots of decision regions for classifying digits 1 versus not 1 are shown below. Average intensity and symmetry were two features that were computed from the raw image data. In each case, regularization and cross validation was used.
 
 - Neural Network
