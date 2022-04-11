@@ -2,11 +2,13 @@
 Custom implementations of machine learning algorithms.
 
 ## Includes
-- Neural Network
+- Vanilla Policy Gradient
+- Neural Network (from numpy scratch)
 - Support Vector Machine
 - K-Nearest Neighbor
 - Radial Basis Function Network
 - Perceptron (linear regression)
+
 
 ## Results for Binary Classification
 Plots of decision regions for classifying digits 1 versus not 1 are shown below. Average intensity and symmetry were two features that were computed from the raw image data. In each case, regularization and cross validation was used.
