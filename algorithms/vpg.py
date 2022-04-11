@@ -1,109 +1,122 @@
-import numpy as np
+import torch
+from torch.optim import Adam
+import gym
 
-
-def add_length_to_shape(length, shape=None):
-    '''
-    Combines an arbitrary shape with a preferred length.
-
-    Parameters
-    ----------
-    length : int
-        size of first axis
-    shape : tuple[int], optional
-        size of the rest of the axes
-    '''
-    if shape is None:
-        return (length,)
-    return (length, shape) if np.isscalar(shape) else (length, *shape)
-
-
-class TrajectoryBuffer:
-    def __init__(self, obs_shape, action_shape, size, discount=0.99, lam=0.95):
-        '''
-        Stores the trajectories that the agent takes up to the buffer size.
-
-        It will store for each step in the environment:
-            - observation
-            - immediate reward
-            - action taken
-            - probability of selecting that action (according to policy)
-            - perceived value of the observation
-        When the trajectory is finished it will compute:
-            - discounted return for each step in trajectory
-            - discounted lambda advantage
-
-        The buffer can be emptied by calling the `get()` method
-        '''
-        self.obs_buf = np.zeros(add_length_to_shape(size, obs_shape),
-                                dtype=np.float32)
-        self.act_buf = np.zeros(add_length_to_shape(size, action_shape),
-                                dtype=np.float32)
-        self.rew_buf = np.zeros(size, dtype=np.float32)
-        self.ret_buf = np.zeros(size, dtype=np.float32)
-        self.adv_buf = np.zeros(size, dtype=np.float32)
-        self.logp_buf = np.zeros(size, dtype=np.float32)
-        self.val_buf = np.zeros(size, dtype=np.float32)
-
-        self.ptr = 0
-        self.start_ptr = 0
-        self.size = size
-
-    def store(self, obs, action, reward, logp, value):
-        ''' Store a single step in the buffer '''
-        if self.ptr == self.size:
-            print('Cannot store current step. Buffer is full.')
-            return
-        self.obs_buf[self.ptr] = obs
-        self.act_buf[self.ptr] = action
-        self.rew_buf[self.ptr] = reward
-        self.logp_buf[self.ptr] = logp
-        self.val_buf[self.ptr] = value
-        self.ptr += 1
-
-    def finish_trajectory(self):
-        ''' Computes the return and advantage per step in trajactory '''
-        pass
-
-    def get(self):
-        ''' Empties the buffer into something useable for learning '''
-        pass
-
-
-class ActorCritic:
-    ''' Actor/Critic that performs actions and makes value estimates '''
-    def __init__(self):
-        pass
-
-    def distribution(self, obs):
-        ''' Returns the current policy distribution over the observation '''
-        pass
-
-    def act(self, obs):
-        ''' Returns an action given the observation '''
-        pass
-
-    def value(self, obs):
-        ''' Returns the perceived value of the observation '''
-        pass
-
-    def logprob_a(self, obs, a):
-        ''' Returns the log probability that an action was selected '''
-        pass
+from utils import TrajectoryBuffer
+from ac import ActorCriticMLP
 
 
 class VPG:
     ''' Vanilla Policy Gradient Algorithm '''
-    def __init__(self):
-        pass
+    def __init__(self, buffer_size=500, discount=0.99, pi_lr=0.0003, v_lr=0.001, lam=0.97):
+        self.buffer_size = buffer_size
+        self.discount = discount
+        self.pi_lr = pi_lr
+        self.v_lr = v_lr
+        self.lam = lam
 
-    def update(self, data):
-        ''' Updates policy and value parameters via gradient ascent/descent '''
-        pass
+    def compute_loss_pi(self, data):
+        obs = data['obs']
+        act = data['act']
+        adv = data['adv']
+        logp_old = data['logp']
 
-    def train(self, env):
+        pi, logp = self.ac.policy(obs, act=act)
+        loss_pi = -(logp * adv).mean()
+
+        return loss_pi
+
+    def compute_loss_val(self, data):
+        obs = data['obs']
+        ret = data['ret']
+        return ((self.ac.value(obs) - ret) ** 2).mean()
+
+    def update(self):
+        ''' Updates policy and value parameters via backprop '''
+        data = self.buffer.get()
+
+        self.pi_optim.zero_grad()
+        pi_loss = self.compute_loss_pi(data)
+        pi_loss.backward()
+        self.pi_optim.step()
+
+        for i in range(self.train_v_iters):
+            self.v_optim.zero_grad()
+            v_loss = self.compute_loss_val(data)
+            v_loss.backward()
+            self.v_optim.step()
+
+
+    def train(self, env_func, epochs=250, train_v_iters=80):
         ''' Train an agent on the given environment '''
-        pass
+        env = env_func()
+        self.buffer = TrajectoryBuffer(env.observation_space.shape,
+                                       env.action_space.shape,
+                                       self.buffer_size,
+                                       discount=self.discount,
+                                       lam=self.lam)
+        self.ac = ActorCriticMLP(env.observation_space.shape[0],
+                                 env.action_space.n)
+        self.train_v_iters = train_v_iters
+        self.pi_optim = Adam(self.ac.actor.parameters(), lr=self.pi_lr)
+        self.v_optim = Adam(self.ac.critic.parameters(), lr=self.v_lr)
+        o = env.reset()
+        ep_ret = 0
+        ep_len = 0
+        for k in range(epochs):
+            for t in range(self.buffer_size):
+                a, v, logp = self.ac.step(torch.as_tensor(o, dtype=torch.float32))
 
-    def eval(self, env):
+                next_o, r, done, _ = env.step(a)
+                ep_ret += r
+                ep_len += 1
+
+                self.buffer.store(o, a, r, logp, v)
+                o = next_o
+
+                buffer_full = t == self.buffer_size - 1
+
+                if done or buffer_full:
+                    if buffer_full:
+                        _, v, _ = self.ac.step(torch.as_tensor(o, dtype=torch.float32))
+                    else:
+                        v = 0.0
+                    self.buffer.finish_trajectory(last_val=v)
+                    o = env.reset()
+                    ep_ret = 0
+                    ep_len = 0
+            self.update()
+
+    def eval(self, env_func, load=False):
         ''' Evaluate an agent on the given environment '''
-        pass
+        env = env_func()
+        if load:
+            self.ac = ActorCriticMLP(env.observation_space.shape[0],
+                                     env.action_space.n)
+            self.ac.load_models('./saved_models/')
+        ep_ret = 0
+        ep_len = 0
+        o = env.reset()
+        done = False
+        while not done:
+            env.render()
+            a, v, logp = self.ac.step(torch.as_tensor(o, dtype=torch.float32))
+            next_o, r, done, _ = env.step(a)
+            ep_ret += r
+            ep_len += 1
+            o = next_o
+        print('Completed Episode! Results:')
+        print(f'Episode Length: {ep_len}')
+        print(f'Episode Return: {ep_ret}')
+        return ep_ret
+
+
+if __name__ == '__main__':
+    env_func = lambda : gym.make('CartPole-v1')
+    vpg = VPG()
+    vpg.train(env_func)
+    total_r = 0
+    for i in range(100):
+        r = vpg.eval(env_func)
+        total_r += r
+    print(f'Average Return Over 100 Trials: {total_r / 100}')
