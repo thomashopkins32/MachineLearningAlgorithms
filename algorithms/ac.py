@@ -1,5 +1,6 @@
 import torch
 import torch.nn.functional as F
+from torch.distributions.categorical import Categorical
 
 from utils import MLP
 
@@ -12,18 +13,26 @@ class ActorCriticMLP:
 
     def distribution(self, obs):
         ''' Returns the current policy distribution over the observation '''
-        with torch.no_grad():
-            return F.softmax(self.actor(obs), dim=1)
+        # TODO: make work for continuous action space
+        return Categorical(logits=self.actor(obs))
 
-    def act(self, obs):
+    def policy(self, obs, act=None):
         ''' Returns an action given the observation '''
-        return self.actor(obs)
+        pi = self.distribution(obs)
+        logp_a = None
+        if act is not None:
+            logp_a = pi.log_prob(act)
+        return pi, logp_a
 
     def value(self, obs):
         ''' Returns the perceived value of the observation '''
         return self.critic(obs)
 
-    def logp_a(self, obs, a):
-        ''' Returns the log probability that an action was selected '''
-        dist = self.distribution(obs)
-        return dist[:, a]
+    def step(self, obs):
+        ''' Returns the action, value, and logp_a for the observation '''
+        with torch.no_grad():
+            pi, _ = self.policy(obs)
+            a = pi.sample()
+            logp = pi.log_prob(a)
+            v = self.value(obs)
+        return a.numpy(), v.numpy(), logp.numpy()

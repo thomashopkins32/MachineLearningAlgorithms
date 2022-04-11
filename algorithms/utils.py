@@ -1,4 +1,6 @@
 import numpy as np
+import torch
+import scipy.signal
 from torch import nn
 
 
@@ -16,6 +18,11 @@ def add_length_to_shape(length, shape=None):
     if shape is None:
         return (length,)
     return (length, shape) if np.isscalar(shape) else (length, *shape)
+
+
+def discount_cumsum(x, discount):
+    # LOOK THIS UP
+    return scipy.signal.lfilter([1], [1, float(-discount)], x[::-1], axis=0)[::-1]
 
 
 class TrajectoryBuffer:
@@ -64,13 +71,34 @@ class TrajectoryBuffer:
         self.val_buf[self.ptr] = value
         self.ptr += 1
 
-    def finish_trajectory(self, last_value=0.0):
+    def finish_trajectory(self, last_val=0.0):
         ''' Computes the return and advantage per step in trajactory '''
-        pass
+        path_slice = slice(self.start_ptr, self.ptr)
+        rewards = np.append(self.rew_buf[path_slice], last_val)
+        values = np.append(self.val_buf[path_slice], last_val)
+
+        # GAE-Lambda advantage (LOOK THIS UP!)
+        deltas = rewards[:-1] + self.discount * values[1:] - values[:-1]
+        self.adv_buf[path_slice] = discount_cumsum(deltas,
+                                                   self.discount * self.lam)
+        # Rewards-to-go (LOOK THIS UP!)
+        self.rew_buf[path_slice] = discount_cumsum(rewards,
+                                                   self.discount)[:-1]
+        self.start_ptr = self.ptr
 
     def get(self):
         ''' Empties the buffer into something useable for learning '''
-        pass
+        if self.ptr != self.size:
+            print('ERROR: buffer not full')
+            return
+        self.ptr = 0
+        self.start_ptr = 0
+        # advantage normalization (LOOK THIS UP!)
+        adv_mean, adv_std = np.mean(self.adv_buf), np.std(self.adv_buf)
+        self.adv_buf = (self.adv_buf - adv_mean) / adv_std
+        data = {'obs': self.obs_buf, 'act': self.act_buf, 'ret': self.ret_buf,
+                'adv': self.adv_buf, 'logp': self.logp_buf}
+        return {k: torch.as_tensor(v, dtype=torch.float32) for k, v in data.items()}
 
 
 class MLP(nn.Module):
