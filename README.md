@@ -1,5 +1,5 @@
 # Machine Learning Algorithms
-Custom implementations of machine learning algorithms. The ones that only use `numpy` are task specific.
+Custom implementations of machine learning algorithms.
 
 ## Includes
 - Neural Network
