@@ -65,7 +65,8 @@ class VPG:
         ep_len = 0
         for k in range(epochs):
             for t in range(self.buffer_size):
-                a, v, logp = self.ac.step(torch.as_tensor(o, dtype=torch.float32))
+                with torch.no_grad():
+                    a, v, logp = self.ac.step(torch.as_tensor(o, dtype=torch.float32))
 
                 next_o, r, done, _ = env.step(a)
                 ep_ret += r
@@ -78,7 +79,8 @@ class VPG:
 
                 if done or buffer_full:
                     if buffer_full:
-                        _, v, _ = self.ac.step(torch.as_tensor(o, dtype=torch.float32))
+                        with torch.no_grad():
+                            _, v, _ = self.ac.step(torch.as_tensor(o, dtype=torch.float32))
                     else:
                         v = 0.0
                     self.buffer.finish_trajectory(last_val=v)
@@ -100,7 +102,8 @@ class VPG:
         done = False
         while not done:
             env.render()
-            a, v, logp = self.ac.step(torch.as_tensor(o, dtype=torch.float32))
+            with torch.no_grad():
+                a, v, logp = self.ac.step(torch.as_tensor(o, dtype=torch.float32))
             next_o, r, done, _ = env.step(a)
             ep_ret += r
             ep_len += 1

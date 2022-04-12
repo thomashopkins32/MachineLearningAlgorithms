@@ -29,9 +29,8 @@ class ActorCriticMLP:
 
     def step(self, obs):
         ''' Returns the action, value, and logp_a for the observation '''
-        with torch.no_grad():
-            pi, _ = self.policy(obs)
-            a = pi.sample()
-            logp = pi.log_prob(a)
-            v = self.value(obs)
-        return a.numpy(), v.numpy(), logp.numpy()
+        pi, _ = self.policy(obs)
+        a = pi.sample()
+        logp = pi.log_prob(a)
+        v = self.value(obs)
+        return a.item(), v.item(), logp.item()
