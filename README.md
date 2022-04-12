@@ -2,7 +2,8 @@
 Custom implementations of machine learning algorithms.
 
 ## Includes
-- Vanilla Policy Gradient
+- One-Step Actor Critic REINFORCE
+- Vanilla Policy Gradient w/ GAE
 - Neural Network (from numpy scratch)
 - Support Vector Machine
 - K-Nearest Neighbor
