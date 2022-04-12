@@ -13,7 +13,6 @@ class ActorCriticMLP:
 
     def distribution(self, obs):
         ''' Returns the current policy distribution over the observation '''
-        # TODO: make work for continuous action space
         return Categorical(logits=self.actor(obs))
 
     def policy(self, obs, act=None):

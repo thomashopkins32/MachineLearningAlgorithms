@@ -21,7 +21,6 @@ def add_length_to_shape(length, shape=None):
 
 
 def discount_cumsum(x, discount):
-    # LOOK THIS UP
     return scipy.signal.lfilter([1], [1, float(-discount)], x[::-1], axis=0)[::-1]
 
 
@@ -77,11 +76,11 @@ class TrajectoryBuffer:
         rewards = np.append(self.rew_buf[path_slice], last_val)
         values = np.append(self.val_buf[path_slice], last_val)
 
-        # GAE-Lambda advantage (LOOK THIS UP!)
+        # GAE-Lambda advantage
         deltas = rewards[:-1] + self.discount * values[1:] - values[:-1]
         self.adv_buf[path_slice] = discount_cumsum(deltas,
                                                    self.discount * self.lam)
-        # Rewards-to-go (LOOK THIS UP!)
+        # Rewards-to-go
         self.rew_buf[path_slice] = discount_cumsum(rewards,
                                                    self.discount)[:-1]
         self.start_ptr = self.ptr
