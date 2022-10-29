@@ -9,6 +9,7 @@ Custom implementations of machine learning algorithms.
 - K-Nearest Neighbor
 - Radial Basis Function Network
 - Perceptron (linear regression)
+- Conv2d implementation
 
 
 ## Results for Binary Classification
