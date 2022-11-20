@@ -21,7 +21,7 @@ class ResidualBlock(nn.Module):
         self.bn2 = nn.BatchNorm2d(out_channels)
     
     def forward(self, xx):
-        x = self.bn2(self.conv2(F.relu(self.bn1(self.conv1(x)))))
+        x = self.bn2(self.conv2(F.relu(self.bn1(self.conv1(xx)))))
         if self.project:
             xx = self.project(xx)
         return F.relu(x + xx)
@@ -56,10 +56,11 @@ class BottleneckBlock(nn.Module):
         return F.relu(x + xx)
     
 class ResNet18(nn.Module):
-    def __init__(self):
+    def __init__(self, in_channels=3):
+        super().__init__()
         self.model = nn.Sequential(
             # conv1
-            nn.Conv2d(3, 64, 7, stride=2, padding=1),
+            nn.Conv2d(in_channels, 64, 7, stride=2, padding=1),
             nn.BatchNorm2d(64),
             nn.ReLU(inplace=True),
 
@@ -81,7 +82,7 @@ class ResNet18(nn.Module):
             ResidualBlock(512, 512),
 
             # output
-            nn.AdaptiveAvgPool2d(1),
+            nn.Flatten(),
             nn.Linear(512, 1000))
     
     def forward(self, x):
@@ -89,10 +90,11 @@ class ResNet18(nn.Module):
 
 
 class ResNet50(nn.Module):
-    def __init__(self):
+    def __init__(self, in_channels=3):
+        super().__init__()
         self.model = nn.Sequential(
             # conv1
-            nn.Conv2d(3, 64, 7, stride=2, padding=1),
+            nn.Conv2d(in_channels, 64, 7, stride=2, padding=1),
             nn.BatchNorm2d(64),
             nn.ReLU(inplace=True),
 
@@ -122,7 +124,7 @@ class ResNet50(nn.Module):
             BottleneckBlock(2048, 512, 2048),
 
             # output
-            nn.AdaptiveAvgPool2d(1),
+            nn.Flatten(),
             nn.Linear(2048, 1000))
     
     def forward(self, x):
