@@ -81,9 +81,9 @@ class DenseNet121(nn.Module):
         else:
             k = growth_rate // 2
         # Convolution
-        self.conv = nn.Conv2d(num_channels, k, 3, stride=2)
+        self.conv = nn.Conv2d(num_channels, k, 3, stride=2, padding=1)
         # Pooling
-        self.pool = nn.MaxPool2d(3, stride=2)
+        self.pool = nn.MaxPool2d(3, stride=2, padding=1)
         # Dense Block (1)
         self.dense1 = DenseBlock(6, k, growth_rate, dropout=dropout)
         num_channels = self.dense1.out_size
