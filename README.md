@@ -5,7 +5,7 @@ Custom implementations of machine learning algorithms.
 - DenseNet (PyTorch)
 - Mixup data augmentation
 - ResNet (PyTorch)
-- Conv2d implementation
+- Conv2d implementation (Julia)
 - One-Step Actor Critic REINFORCE
 - Vanilla Policy Gradient w/ GAE
 - Neural Network (from numpy scratch)
