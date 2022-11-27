@@ -2,6 +2,10 @@
 Custom implementations of machine learning algorithms.
 
 ## Includes
+- DenseNet (PyTorch)
+- Mixup data augmentation
+- ResNet (PyTorch)
+- Conv2d implementation
 - One-Step Actor Critic REINFORCE
 - Vanilla Policy Gradient w/ GAE
 - Neural Network (from numpy scratch)
@@ -9,7 +13,6 @@ Custom implementations of machine learning algorithms.
 - K-Nearest Neighbor
 - Radial Basis Function Network
 - Perceptron (linear regression)
-- Conv2d implementation
 
 
 ## Results for Binary Classification
