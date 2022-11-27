@@ -35,15 +35,17 @@ class DenseFilter(nn.Module):
 class DenseBlock(nn.Module):
     def __init__(self, num_layers, in_features, growth_rate, dropout=0.0):
         super().__init__()
-        self.layers = []
+        layers = []
         for l in range(1, num_layers + 1):
             k = in_features + growth_rate * (l - 1)
-            self.layers.append(DenseFilter(k, growth_rate, dropout=dropout))
-        self.out_size = k
+            layers.append(DenseFilter(k, growth_rate, dropout=dropout))
+        self.layers = nn.ModuleList(layers)
+        self.depth = num_layers
+        self.out_size = k + growth_rate
     
     def forward(self, xx):
         x = xx
-        for l in range(len(self.layers)):
+        for l in range(self.depth):
             x_tmp = self.layers[l](x)
             x = torch.cat((x, x_tmp), dim=1)
         return x
@@ -52,7 +54,7 @@ class DenseBlock(nn.Module):
 class DenseTransition(nn.Module):
     def __init__(self, in_features, compression_factor, dropout=0.0):
         super().__init__()
-        self.out_size = torch.round(in_features * compression_factor)
+        self.out_size = int(in_features * compression_factor)
         if dropout == 0.0:
             self.transition = nn.Sequential(
                 nn.BatchNorm2d(in_features),
@@ -72,9 +74,8 @@ class DenseTransition(nn.Module):
 
 
 class DenseNet121(nn.Module):
-    def __init__(self, num_channels, num_classes, compression_factor=1.0, dropout=0.0):
+    def __init__(self, num_channels, num_classes, growth_rate=12, compression_factor=1.0, dropout=0.0):
         super().__init__()
-        growth_rate = 32
         if compression_factor < 1.0:
             k = 2 * growth_rate
         else:
@@ -103,10 +104,11 @@ class DenseNet121(nn.Module):
         num_channels = self.transition3.out_size
         # Dense Block (4)
         self.dense4 = DenseBlock(16, num_channels, growth_rate, dropout=dropout)
-        num_channels = self.dense3.out_size
+        num_channels = self.dense4.out_size
         # Classification Layer
         self.classifier = nn.Sequential(
             nn.AdaptiveAvgPool2d((1, 1)),
+            nn.Flatten(),
             nn.Linear(num_channels, num_classes)
         )
     
