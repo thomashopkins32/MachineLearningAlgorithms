@@ -2,6 +2,7 @@
 Custom implementations of machine learning algorithms.
 
 ## Includes
+- LSTM (PyTorch)
 - DenseNet (PyTorch)
 - Mixup data augmentation
 - ResNet (PyTorch)
