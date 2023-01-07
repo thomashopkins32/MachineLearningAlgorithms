@@ -2,18 +2,20 @@
 Custom implementations of machine learning algorithms.
 
 ## Includes
-- LSTM (PyTorch)
-- DenseNet (PyTorch)
-- Mixup data augmentation
-- ResNet (PyTorch)
-- Conv2d implementation (Julia)
-- One-Step Actor Critic REINFORCE
-- Vanilla Policy Gradient w/ GAE
-- Neural Network (from numpy scratch)
-- Support Vector Machine
-- K-Nearest Neighbor
-- Radial Basis Function Network
-- Perceptron (linear regression)
+| Algorithm / Architecture | Language | Framework |
+|--------------------------|----------|-----------|
+| LSTM | Python | PyTorch |
+| DenseNet | Python | PyTorch |
+| Mixup data augmentation | Python | NumPy |
+| ResNet | Python | PyTorch |
+| Conv2d | Julia | Base |
+| One-Step Actor Critic REINFORCE | Python | PyTorch |
+| Vanilla Policy Gradient w/ GAE | Python | PyTorch |
+| Neural Network | Python | NumPy |
+| Support Vector Machine | Python | NumPy |
+| K-Nearest Neighbor | Python | Base |
+| Radial Basis Function Network | Python | Base |
+| Perceptron | Python | NumPy |
 
 
 ## Results for Binary Classification
