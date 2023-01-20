@@ -4,6 +4,7 @@ Custom implementations of machine learning algorithms.
 ## Includes
 | Algorithm / Architecture | Language | Framework |
 |--------------------------|----------|-----------|
+| GRU | Python | PyTorch |
 | LSTM | Python | PyTorch |
 | DenseNet | Python | PyTorch |
 | Mixup data augmentation | Python | NumPy |
