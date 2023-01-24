@@ -32,20 +32,11 @@ class MultiHeadAttention(nn.Module):
     def __init__(self, nheads, mdim, kdim, vdim):
         super().__init__()
         self.nheads = nheads
-
-        self.qs = nn.ModuleList([nn.Linear(mdim, kdim, bias=False) for _ in range(nheads)])
-        self.ks = nn.ModuleList([nn.Linear(mdim, kdim, bias=False) for _ in range(nheads)])
-        self.vs = nn.ModuleList([nn.Linear(mdim, vdim, bias=False) for _ in range(nheads)])
         self.attention = SelfAttention(kdim)
-
         self.out = nn.Linear(vdim * nheads, mdim, bias=False)
 
     def forward(self, q, k, v, mask=None):
-        res = []
-        # TODO: make run in parallel
-        for q, k, v in zip(self.qs, self.ks, self.vs):
-            res.append(self.attention(q, k, v, mask=mask))
-        x = torch.stack(res, dim=2)
+        x = self.attention(q, k, v, mask=mask)
         return self.out(x)
 
 
@@ -88,8 +79,7 @@ class TransformerDecoderBlock(nn.Module):
         self.ln2 = nn.LayerNorm((sqlength, mdim))
     
     def forward(self, x, enc):
-        # TODO: Implement masking
-        o = self.multi_attention1(x, x, x, mask=None)
+        o = self.multi_attention1(x, x, x, mask=torch.triu_indices(x.shape[1], x.shape[2]))
         x = o + x
         x = self.ln1(x)
 
@@ -133,17 +123,66 @@ class TransformerDecoder(nn.Module):
         return x
 
 
-class Transformer(nn.Module):
-    def __init__(self, n_layers, nheads, mdim, kdim, vdim, ffdim, sqlength):
+class PositionalEncoder(nn.Module):
+    def __init__(self, mdim, max_length):
         super().__init__()
-        self.in_embeds = nn.Embedding()
-        self.out_embeds = nn.Embedding()
+        position = torch.arange(max_length).unsqueeze(1)
+        #print(f'position: {position.shape}')
+        self.encoder = torch.zeros(1, max_length, mdim)
+        #print(f'func: {torch.sin(position / (10000 ** ((2 * torch.arange(0, mdim, 2)) / mdim))).shape}')
+        self.encoder[0, :, 0::2] = torch.sin(position / (10000 ** ((2 * torch.arange(0, mdim, 2)) / mdim)))
+        self.encoder[0, :, 1::2] = torch.cos(position / (10000 ** ((2 * torch.arange(0, mdim, 2)) / mdim)))
+
+    def forward(self, x):
+        return x + self.encoder[:, :x.shape[1], :]
+
+
+class Transformer(nn.Module):
+    def __init__(self, vocab_size, n_layers, nheads, mdim, kdim, vdim, ffdim, sqlength):
+        super().__init__()
+        self.in_embeds = nn.Embedding(vocab_size, mdim)
+        self.out_embeds = nn.Embedding(vocab_size, mdim)
+
+        self.pos_encoder = PositionalEncoder(mdim, sqlength)
 
         self.encoder = TransformerEncoder(n_layers, nheads, mdim, kdim, vdim, ffdim, sqlength)
         self.decoder = TransformerDecoder(n_layers, nheads, mdim, kdim, vdim, ffdim, sqlength)
 
-    def forward(self, x):
-        # TODO: finish
-        inputs = x
-        x_emb = self.in_embeds(x)
+        self.out = nn.Linear(mdim, vocab_size)
 
+    def forward(self, x):
+        inputs = x
+        print(f'inputs: {inputs.shape}')
+        i_emb = self.in_embeds(inputs).squeeze()
+        print(f'i_emb1: {i_emb.shape}')
+        i_emb = self.pos_encoder(i_emb).squeeze()
+        print(f'i_emb2: {i_emb.shape}')
+
+        outputs = x[:, 1:, :]
+        print(f'outputs: {outputs.shape}')
+        o_emb = self.out_embeds(outputs).squeeze()
+        print(f'o_emb1: {o_emb.shape}')
+        o_emb = self.pos_encoder(o_emb).squeeze()
+        print(f'o_emb2: {o_emb.shape}')
+
+        enc = self.encoder(i_emb)
+        print(f'enc: {enc.shape}')
+        x = self.decoder(o_emb, enc)
+        print(f'x: {x.shape}')
+        return self.out(x)
+
+    
+if __name__ == '__main__':
+    vocab_size = 10
+    n_layers = 4
+    nheads = 4
+    mdim = 32
+    kdim = 16
+    vdim = 8
+    ffdim = 64
+    sqlength = 5
+    model = Transformer(vocab_size, n_layers, nheads, mdim, kdim, vdim, ffdim, sqlength)
+    x = torch.randint(low=0, high=vocab_size-1, size=(3, sqlength, 1))
+    logits = model(x)
+    print(logits.shape)
+    print(logits)
