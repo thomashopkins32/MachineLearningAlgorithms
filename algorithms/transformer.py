@@ -43,7 +43,7 @@ class MultiHeadAttention(nn.Module):
         outs = []
         for n in range(self.nheads):
             outs.append(self.attention[n](q, k, v))
-        x = torch.stack(outs, dim=1)
+        x = torch.cat(outs, dim=-1)
         return self.out(x)
 
 
@@ -95,7 +95,7 @@ class PositionalEncoder(nn.Module):
 
 
 class Transformer(nn.Module):
-    ''' Decoder only since I am not doing translation '''
+    ''' Decoder only since I have no additional input to encode '''
     def __init__(self, vocab_size, n_layers, nheads, mdim, kdim, vdim, ffdim, sqlength):
         super().__init__()
         self.in_embeds = nn.Embedding(vocab_size, mdim)
@@ -108,13 +108,9 @@ class Transformer(nn.Module):
 
     def forward(self, x):
         inputs = x
-        print(f'inputs: {inputs.shape}')
         i_emb = self.in_embeds(inputs).squeeze()
-        print(f'i_emb1: {i_emb.shape}')
         i_emb = self.pos_encoder(i_emb).squeeze()
-        print(f'i_emb2: {i_emb.shape}')
         x = self.decoder(i_emb)
-        print(f'x: {x.shape}')
         return self.out(x)
 
     
