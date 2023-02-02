@@ -4,6 +4,7 @@ Custom implementations of machine learning algorithms.
 ## Includes
 | Algorithm / Architecture | Language | Framework |
 |--------------------------|----------|-----------|
+| Transformer | Python | PyTorch |
 | GRU | Python | PyTorch |
 | LSTM | Python | PyTorch |
 | DenseNet | Python | PyTorch |
